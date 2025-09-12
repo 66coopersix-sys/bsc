@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多币种兑换平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4e54c8;
+            --primary-light: #8f94fb;
+            --secondary-color: #2196F3;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --danger-color: #F44336;
+            --background-color: #f8f9fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --text-light: #666666;
+            --border-color: #e0e0e0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .info-box {
+            background-color: rgba(78, 84, 200, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .token-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .token-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .token-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        .token-item.selected {
+            border-color: var(--primary-color);
+            background-color: rgba(78, 84, 200, 0.1);
+        }
+
+        .token-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        .token-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .token-symbol {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .wallet-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--gradient);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-address {
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .disconnect-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .disconnect-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .transaction-history {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.3s ease;
+        }
+
+        .transaction-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .transaction-details {
+            flex: 1;
+        }
+
+        .transaction-amount {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .transaction-date {
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--success-color);
+        }
+
+        .status-pending {
+            background-color: rgba(255, 152, 0, 0.2);
+            color: var(--warning-color);
+        }
+
+        .status-failed {
+            background-color: rgba(244, 67, 54, 0.2);
+            color: var(--danger-color);
+        }
+
+        .network-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .token-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+            
+            .wallet-info {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo"><i class="fas fa-exchange-alt"></i> MultiSwap</div>
+            <div class="subtitle">使用USDT兑换多种数字货币</div>
+        </div>
+
+        <div id="walletSection" class="card" style="display: none;">
+            <div class="wallet-info">
+                <div>
+                    <div>已连接钱包</div>
+                    <div class="wallet-address" id="walletAddress"></div>
+                </div>
+                <button class="disconnect-btn" onclick="disconnectWallet()">断开连接</button>
+            </div>
+            <div class="info-item">
+                <span>USDT余额:</span>
+                <span id="usdtBalance">0</span>
+            </div>
+            <div class="info-item">
+                <span>网络:</span>
+                <span id="networkInfo">未知</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-sync-alt"></i> 兑换设置</h2>
+            
+            <div class="form-group">
+                <label for="usdtAmount">存入USDT数量:</label>
+                <input type="number" id="usdtAmount" placeholder="输入USDT数量" step="0.01" min="0">
+            </div>
+            
+            <div class="form-group">
+                <label>选择目标币种:</label>
+                <div class="token-grid" id="tokenSelector">
+                    <div class="token-item" data-token="ETH" data-address="0x0000000000000000000000000000000000000000">
+                        <i class="fab fa-ethereum token-icon"></i>
+                        <div class="token-name">ETH</div>
+                        <div class="token-symbol">以太坊</div>
+                    </div>
+                    <div class="token-item" data-token="BTCB" data-address="0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c">
+                        <i class="fab fa-bitcoin token-icon"></i>
+                        <div class="token-name">BTCB</div>
+                        <div class="token-symbol">比特币</div>
+                    </div>
+                    <div class="token-item" data-token="BUSD" data-address="0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56">
+                        <i class="fas fa-dollar-sign token-icon"></i>
+                        <div class="token-name">BUSD</div>
+                        <div class="token-symbol">稳定币</div>
+                    </div>
+                    <div class="token-item" data-token="CAKE" data-address="0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82">
+                        <i class="fas fa-birthday-cake token-icon"></i>
+                        <div class="token-name">CAKE</div>
+                        <div class="token-symbol">PancakeSwap</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="recipientAddress">收款地址:</label>
+                <input type="text" id="recipientAddress" placeholder="输入收款地址（默认当前钱包）">
+            </div>
+            
+            <div class="form-group">
+                <label for="slippage">滑点容忍度:</label>
+                <select id="slippage">
+                    <option value="50">0.5%</option>
+                    <option value="100" selected>1%</option>
+                    <option value="200">2%</option>
+                    <option value="300">3%</option>
+                </select>
+            </div>
+            
+            <div class="info-box">
+                <div class="info-item">
+                    <span>预计获得:</span>
+                    <span id="expectedAmount">0</span> <span id="expectedToken">ETH</span>
+                </div>
+                <div class="info-item">
+                    <span>手续费:</span>
+                    <span>0.3%</span>
+                </div>
+                <div class="info-item">
+                    <span>最低收到:</span>
+                    <span id="minReceived">0</span> <span id="minToken">ETH</span>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="calculateSwap()" style="margin-top: 20px;">
+                <i class="fas fa-calculator"></i> 计算兑换
+            </button>
+            
+            <button class="btn" onclick="executeSwap()" style="margin-top: 10px; background: var(--success-color);">
+                <i class="fas fa-exchange-alt"></i> 开始兑换
+            </button>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-history"></i> 兑换历史</h2>
+            <div id="transactionHistory" class="transaction-history">
+                <div class="transaction-item">
+                    <div class="transaction-details">
+                        <div class="transaction-amount">100 USDT → 0.05 ETH</div>
+                        <div class="transaction-date">2023-06-15 14:30:25</div>
+                    </div>
+                    <span class="status-badge status-success">成功</span>
+                </div>
+                <div class="transaction-item">
+                    <div class="transaction-details">
+                        <div class="transaction-amount">250 USDT → 0.125 ETH</div>
+                        <div class="transaction-date">2023-06-14 09:15:42</div>
+                    </div>
+                    <span class="status-badge status-success">成功</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="connectSection" class="card" style="text-align: center;">
+            <h2 class="card-title"><i class="fas fa-wallet"></i> 连接钱包</h2>
+            <p style="margin-bottom: 20px;">请连接您的钱包开始使用多币种兑换服务</p>
+            <button class="btn" onclick="connectWallet()">
+                <i class="fas fa-plug"></i> 连接MetaMask
+            </button>
+            <div style="margin-top: 15px; font-size: 0.9rem; color: var(--text-light);">
+                支持 MetaMask、Trust Wallet 等兼容钱包
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>多币种兑换平台 &copy; 2023 | 基于 PancakeSwap 构建</p>
+            <p>注意: 请在交易前确认网络和合约地址的正确性</p>
+        </div>
+    </div>
+
+    <script>
+        let web3;
+        let account;
+        let exchangeContract;
+        let usdtContract;
+        let selectedToken = {
+            symbol: 'ETH',
+            address: '0x0000000000000000000000000000000000000000'
+        };
+        
+        // 注意: 部署前请替换为您的实际合约地址
+        const exchangeContractAddress = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+        const BSC_RPC_URL = "https://bsc-dataseed.binance.org/";
+        
+        // 合约ABI (简化版)
+        const exchangeABI = [
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "usdtAmount", "type": "uint256"},
+                    {"internalType": "address", "name": "toToken", "type": "address"},
+                    {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+                    {"internalType": "address", "name": "recipient", "type": "address"},
+                    {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+                ],
+                "name": "swapUSDTToToken",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "usdtAmount", "type": "uint256"},
+                    {"internalType": "uint256", "name": "amountOutMin", "type": "uint256"},
+                    {"internalType": "address", "name": "recipient", "type": "address"},
+                    {"internalType": "uint256", "name": "deadline", "type": "uint256"}
+                ],
+                "name": "swapUSDTToETH",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"internalType": "uint256", "name": "usdtAmount", "type": "uint256"},
+                    {"internalType": "address", "name": "toToken", "type": "address"}
+                ],
+                "name": "getExpectedAmount",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "usdtAmount", "type": "uint256"}],
+                "name": "getExpectedETHAmount",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        // USDT合约ABI
+        const usdtABI = [
+            {
+                "constant": true,
+                "inputs": [{"name": "_owner", "type": "address"}],
+                "name": "balanceOf",
+                "outputs": [{"name": "balance", "type": "uint256"}],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {"name": "_spender", "type": "address"},
+                    {"name": "_value", "type": "uint256"}
+                ],
+                "name": "approve",
+                "outputs": [{"name": "", "type": "bool"}],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+        
+        // 初始化页面
+        window.addEventListener('load', async () => {
+            // 设置代币选择事件
+            const tokenItems = document.querySelectorAll('.token-item');
+            tokenItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // 移除之前的选择
+                    tokenItems.forEach(t => t.classList.remove('selected'));
+                    // 添加新选择
+                    item.classList.add('selected');
+                    
+                    // 更新选中的代币
+                    selectedToken = {
+                        symbol: item.getAttribute('data-token'),
+                        address: item.getAttribute('data-address')
+                    };
+                    
+                    // 更新UI
+                    document.getElementById('expectedToken').textContent = selectedToken.symbol;
+                    document.getElementById('minToken').textContent = selectedToken.symbol;
+                    
+                    // 重新计算兑换
+                    if (document.getElementById('usdtAmount').value) {
+                        calculateSwap();
+                    }
+                });
+            });
+            
+            // 默认选择ETH
+            document.querySelector('[data-token="ETH"]').classList.add('selected');
+            
+            // 检查是否已连接钱包
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0) {
+                        await connectWallet();
+                    }
+                } catch (error) {
+                    console.error("Error checking connected accounts:", error);
+                }
+            }
+        });
+        
+        // 连接钱包
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // 请求账户连接
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    
+                    // 使用Web3
+                    web3 = new Web3(window.ethereum);
+                    
+                    // 获取账户
+                    const accounts = await web3.eth.getAccounts();
+                    account = accounts[0];
+                    
+                    // 初始化合约
+                    exchangeContract = new web3.eth.Contract(exchangeABI, exchangeContractAddress);
+                    usdtContract = new web3.eth.Contract(usdtABI, '0x55d398326f99059fF775485246999027B3197955');
+                    
+                    // 更新UI
+                    document.getElementById('walletAddress').textContent = account;
+                    document.getElementById('recipientAddress').value = account;
+                    document.getElementById('connectSection').style.display = 'none';
+                    document.getElementById('walletSection').style.display = 'block';
+                    
+                    // 获取网络信息
+                    const chainId = await web3.eth.getChainId();
+                    let networkName = '未知网络';
+                    if (chainId === 56) networkName = 'BSC主网';
+                    else if (chainId === 97) networkName = 'BSC测试网';
+                    
+                    document.getElementById('networkInfo').textContent = networkName;
+                    
+                    // 获取USDT余额
+                    await loadUSDTBalance();
+                    
+                } catch (error) {
+                    console.error("连接钱包失败:", error);
+                    alert("连接钱包失败: " + error.message);
+                }
+            } else {
+                alert("请安装MetaMask或其他Web3钱包!");
+            }
+        }
+        
+        // 断开钱包连接
+        function disconnectWallet() {
+            account = null;
+            web3 = null;
+            document.getElementById('connectSection').style.display = 'block';
+            document.getElementById('walletSection').style.display = 'none';
+        }
+        
+        // 加载USDT余额
+        async function loadUSDTBalance() {
+            try {
+                const balance = await usdtContract.methods.balanceOf(account).call();
+                document.getElementById('usdtBalance').textContent = web3.utils.fromWei(balance, 'ether') + ' USDT';
+            } catch (error) {
+                console.error("获取USDT余额失败:", error);
+            }
+        }
+        
+        // 计算兑换
+        async function calculateSwap() {
+            const usdtAmount = document.getElementById('usdtAmount').value;
+            if (!usdtAmount || usdtAmount <= 0) {
+                alert("请输入有效的USDT数量");
+                return;
+            }
+            
+            const usdtAmountWei = web3.utils.toWei(usdtAmount, 'ether');
+            
+            try {
+                let expectedAmount;
+                
+                if (selectedToken.symbol === 'ETH') {
+                    // 兑换ETH
+                    expectedAmount = await exchangeContract.methods.getExpectedETHAmount(usdtAmountWei).call();
+                } else {
+                    // 兑换其他代币
+                    expectedAmount = await exchangeContract.methods.getExpectedAmount(usdtAmountWei, selectedToken.address).call();
+                }
+                
+                // 更新UI
+                document.getElementById('expectedAmount').textContent = web3.utils.fromWei(expectedAmount, 'ether');
+                
+                // 计算最小收到数量（考虑滑点）
+                const slippage = document.getElementById('slippage').value;
+                const minAmount = expectedAmount * (10000 - slippage) / 10000;
+                document.getElementById('minReceived').textContent = web3.utils.fromWei(minAmount.toString(), 'ether');
+                
+            } catch (error) {
+                console.error("计算兑换失败:", error);
+                alert("计算失败: " + error.message);
+            }
+        }
+        
+        // 执行兑换
+        async function executeSwap() {
+            const usdtAmount = document.getElementById('usdtAmount').value;
+            if (!usdtAmount || usdtAmount <= 0) {
+                alert("请输入有效的USDT数量");
+                return;
+            }
+            
+            const usdtAmountWei = web3.utils.toWei(usdtAmount, 'ether');
+            const slippage = document.getElementById('slippage').value;
+            const recipient = document.getElementById('recipientAddress').value || account;
+            const deadline = Math.floor(Date.now() / 1000) + 600; // 10分钟过期
+            
+            try {
+                // 获取预期数量
+                let expectedAmount;
+                if (selectedToken.symbol === 'ETH') {
+                    expectedAmount = await exchangeContract.methods.getExpectedETHAmount(usdtAmountWei).call();
+                } else {
+                    expectedAmount = await exchangeContract.methods.getExpectedAmount(usdtAmountWei, selectedToken.address).call();
+                }
+                
+                // 计算最小收到数量
+                const amountOutMin = expectedAmount * (10000 - slippage) / 10000;
+                
+                // 首先授权USDT
+                await usdtContract.methods.approve(exchangeContractAddress, usdtAmountWei).send({ from: account });
+                
+                // 执行兑换
+                if (selectedToken.symbol === 'ETH') {
+                    await exchangeContract.methods.swapUSDTToETH(
+                        usdtAmountWei,
+                        amountOutMin,
+                        recipient,
+                        deadline
+                    ).send({ from: account });
+                } else {
+                    await exchangeContract.methods.swapUSDTToToken(
+                        usdtAmountWei,
+                        selectedToken.address,
+                        amountOutMin,
+                        recipient,
+                        deadline
+                    ).send({ from: account });
+                }
+                
+                alert("兑换成功!");
+                
+                // 更新余额
+                await loadUSDTBalance();
+                
+                // 添加到交易历史
+                addTransactionToHistory(usdtAmount, web3.utils.fromWei(expectedAmount, 'ether'));
+                
+            } catch (error) {
+                console.error("兑换失败:", error);
+                alert("兑换失败: " + error.message);
+            }
+        }
+        
+        // 添加到交易历史
+        function addTransactionToHistory(usdtAmount, tokenAmount) {
+            const historyDiv = document.getElementById('transactionHistory');
+            const transactionItem = document.createElement('div');
+            transactionItem.className = 'transaction-item';
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+            
+            transactionItem.innerHTML = `
+                <div class="transaction-details">
+                    <div class="transaction-amount">${usdtAmount} USDT → ${tokenAmount} ${selectedToken.symbol}</div>
+                    <div class="transaction-date">${dateStr}</div>
+                </div>
+                <span class="status-badge status-success">成功</span>
+            `;
+            
+            historyDiv.prepend(transactionItem);
+        }
+    </script>
+</body>
+</html>
