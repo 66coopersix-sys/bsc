@@ -35,7 +35,9 @@ class WalletManager {
     // Convert to TRON address
     const address = this.tronWeb.address.fromPrivateKey(privateKey);
 
-    // Store mapping: userId -> address, address -> privateKey (encrypted in production)
+    // Store mapping: userId -> address, address -> privateKey
+    // WARNING: In production, encrypt privateKey before storing!
+    // Use AES-256-GCM with a KMS-managed key for encryption
     await this.redis.hset('tron:user:addresses', userId, address);
     await this.redis.hset('tron:address:keys', address, privateKey);
     await this.redis.hset('tron:address:index_map', address, addressIndex.toString());

@@ -56,8 +56,13 @@ class ConsolidationService {
         const item = await this.redis.lpop('tron:consolidation:queue');
         if (!item) break;
 
-        const { address, amount } = JSON.parse(item);
-        await this.consolidate(address, amount);
+        const parsed = JSON.parse(item);
+        const retryCount = parsed.retryCount || 0;
+        if (retryCount >= 3) {
+          logger.error(`Max retries reached for ${parsed.address}, skipping`);
+          continue;
+        }
+        await this.consolidate(parsed.address, parsed.amount, retryCount);
 
         // Small delay between consolidations to avoid rate limits
         await this.sleep(3000);
@@ -73,8 +78,9 @@ class ConsolidationService {
    * Execute consolidation for a single address
    * @param {string} address - User address
    * @param {number} amount - USDT amount to consolidate
+   * @param {number} retryCount - Current retry attempt
    */
-  async consolidate(address, amount) {
+  async consolidate(address, amount, retryCount = 0) {
     logger.info(`Starting consolidation: ${address} -> ${config.wallet.consolidationAddress} (${amount / 1e6} USDT)`);
 
     try {
@@ -120,23 +126,22 @@ class ConsolidationService {
         }));
       } else {
         logger.error(`Consolidation failed for ${address}: ${result.error}`);
-        // Re-queue for retry
+        // Re-queue for retry with incremented count
         await this.redis.rpush('tron:consolidation:queue', JSON.stringify({
           address,
           amount,
           queuedAt: Date.now(),
-          retryCount: 1,
+          retryCount: retryCount + 1,
         }));
       }
 
       // Step 5: Undelegate energy after completion (if delegated from hot wallet)
       if (energyDelegated) {
-        // Wait a bit for the transfer to be confirmed, then undelegate
-        setTimeout(() => {
-          this.energyManager.undelegateEnergy(address).catch(err =>
-            logger.error(`Undelegate error: ${err.message}`)
-          );
-        }, 60000); // Undelegate after 1 minute
+        // Store pending undelegation in Redis for reliability
+        await this.redis.rpush('tron:pending:undelegations', JSON.stringify({
+          address,
+          scheduledAt: Date.now() + 60000,
+        }));
       }
     } catch (error) {
       logger.error(`Consolidation error for ${address}:`, error.message);
@@ -156,9 +161,8 @@ class ConsolidationService {
         headers: config.tron.apiKey ? { 'TRON-PRO-API-KEY': config.tron.apiKey } : {},
       });
 
-      // Send 1 TRX (1,000,000 sun) - this activates the account and provides bandwidth
-      // Alternatively send 0 TRX if account is already activated
-      const tx = await hotWalletTronWeb.trx.sendTransaction(address, 100000); // 0.1 TRX
+      // Send 0.1 TRX (100,000 sun) - provides bandwidth for the TRC-20 transfer
+      const tx = await hotWalletTronWeb.trx.sendTransaction(address, 100000);
 
       if (tx.result) {
         logger.info(`Sent 0.1 TRX to ${address} for bandwidth (TX: ${tx.txid})`);
@@ -205,7 +209,7 @@ class ConsolidationService {
         config.wallet.consolidationAddress,
         transferAmount
       ).send({
-        feeLimit: 50_000_000, // 50 TRX max fee limit (safety cap)
+        feeLimit: 5_000_000, // 5 TRX max fee limit (safety cap, expect < 3 TRX)
         callValue: 0,
       });
 

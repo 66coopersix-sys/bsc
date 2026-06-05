@@ -56,7 +56,7 @@ class DepositMonitor {
     if (addresses.length === 0) return;
 
     // Get last checked timestamp
-    const lastChecked = await this.redis.get('tron:last_checked_timestamp') || '0';
+    const lastChecked = await this.redis.get('tron:last_checked_timestamp') || (Date.now() - 3600000).toString();
     const minTimestamp = parseInt(lastChecked, 10);
 
     for (const address of addresses) {

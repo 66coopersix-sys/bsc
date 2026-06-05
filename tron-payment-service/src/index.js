@@ -120,7 +120,7 @@ service.start().catch(error => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => service.stop());
-process.on('SIGTERM', () => service.stop());
+process.on('SIGINT', async () => { await service.stop(); process.exit(0); });
+process.on('SIGTERM', async () => { await service.stop(); process.exit(0); });
 
 module.exports = TronPaymentService;
